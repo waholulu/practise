@@ -14,7 +14,7 @@
 <a href="https://github.com/nlpxucan/WizardLM/tree/main/WizardMath">https://github.com/nlpxucan/WizardLM/tree/main/WizardMath</a><br>
 <a href="https://github.com/nlpxucan/WizardLM/tree/main/WizardCoder">https://github.com/nlpxucan/WizardLM/tree/main/WizardCoder</a></p>
 <h1 id="colab">Colab</h1>
-<p><a href="https://colab.research.google.com/drive/18tLZqid9EfG04XoH9cJnLT3YPROYUktD?usp=sharing#scrollTo=hxpPNm67GVF6">https://colab.research.google.com/drive/18tLZqid9EfG04XoH9cJnLT3YPROYUktD?usp=sharing#scrollTo=hxpPNm67GVF6</a></p>
+<p><img src="https://i.ibb.co/fSTGf9k/20230816134256.png" alt="enter image description here"></p>
 <h1 id="ui">UI</h1>
 <p><a href="https://github.com/oobabooga/text-generation-webui">https://github.com/oobabooga/text-generation-webui</a></p>
 <p><img src="https://i.ibb.co/n36pf1X/1.png" alt="enter image description here"></p>
