@@ -9,6 +9,7 @@
 <p>By making such powerful models openly accessible, Open LLMs aim to democratize AI and spur responsible innovations. Researchers hope these transparent models will set new standards for AI safety and trustworthiness. However, there are still concerns around potential misuse that need to be addressed. Overall, Open LLMs represent an exciting new direction for AI aligned with human values.</p>
 <h1 id="leaderboard">Leaderboard</h1>
 <p><a href="https://huggingface.co/spaces/HuggingFaceH4/open_llm_leaderboard">https://huggingface.co/spaces/HuggingFaceH4/open_llm_leaderboard</a></p>
+<p><img src="https://i.ibb.co/kmFHpQm/20230816133053.png" alt="enter image description here"></p>
 <h1 id="colab">Colab</h1>
 <p><a href="https://colab.research.google.com/drive/18tLZqid9EfG04XoH9cJnLT3YPROYUktD?usp=sharing#scrollTo=hxpPNm67GVF6">https://colab.research.google.com/drive/18tLZqid9EfG04XoH9cJnLT3YPROYUktD?usp=sharing#scrollTo=hxpPNm67GVF6</a></p>
 <h1 id="ui">UI</h1>
