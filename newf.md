@@ -1,10 +1,10 @@
 ```
-# Convert the srv_start_dt to datetime and extract the month
-df['month'] = pd.to_datetime(df['srv_start_dt']).dt.month
-# Group by month and plc_srv_cd, then calculate the mean
-grouped = df.groupby(['month', 'plc_srv_cd']).billed_amt.mean().reset_index()
+# Convert the start_dt to datetime and extract the month
+df['month'] = pd.to_datetime(df['start_dt']).dt.month
+# Group by month and  srv_cd, then calculate the mean
+grouped = df.groupby(['month', 'srv_cd']).billed_amt.mean().reset_index()
 # Pivot the table
-pivot_table = grouped.pivot(index='month', columns='plc_srv_cd', values='billed_amt')
+pivot_table = grouped.pivot(index='month', columns='srv_cd', values='billed_amt')
 ```
 ## Multicollinearity
 
