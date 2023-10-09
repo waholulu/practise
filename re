@@ -1,9 +1,25 @@
-Thank you for reaching out and considering our input for the upcoming monitoring process on GCP.
+python
+Copy code
+# ... [previous code for training and prediction]
 
-Regarding counts by state, it might be useful to include metrics such as the number of occurrences,.
+    # Get the indices of the top 10% predictions
+    top_10_percent_indices = np.argsort(y_pred_prob)[-int(0.1 * len(y_pred_prob)):]
 
-I agree the flexibility to change code as per our needs would be crucial
-. 
-If the RAP API is online soon, I can just modified my previous BQ code then launch the GCP directly 
+    # Number of actual positives in the top 10%
+    actual_positives = y_test[top_10_percent_indices].sum()
 
-Once again, thanks for involving us in this process. Looking forward to contributing to the success of this initiative.
+    # Expected positives in a random 10% sample
+    expected_positives = y_test.sum() * 0.1
+
+    # Calculate lift
+    lift = actual_positives / expected_positives
+    lift_list.append(lift)
+    print(f"Lift for fold {len(lift_list)}: {lift:.4f}")
+
+# ... [rest of the code for average lift]
+This version simplifies the steps to compute the lift by directly extracting the top 10% indices and using them to compute the actual number of positives. The lift is then straightforwardly calculated as the ratio of actual to expected positives.
+
+
+
+
+
