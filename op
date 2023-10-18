@@ -1,0 +1,43 @@
+import optuna
+import xgboost as xgb
+from sklearn.datasets import load_boston
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+
+# Sample dataset for demonstration
+data = load_boston()
+X = data.data
+y = data.target
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+
+def objective(trial):
+    # Define search space
+    param = {
+        'objective': 'reg:squarederror',
+        'learning_rate': trial.suggest_categorical('learning_rate', [0.01, 0.05, 0.1, 0.3]),
+        'max_depth': trial.suggest_int('max_depth', 6, 12, 2),
+        'min_child_weight': trial.suggest_categorical('min_child_weight', [1, 3, 5, 7]),
+        'subsample': trial.suggest_categorical('subsample', [0.5, 0.7, 0.9]),
+        'n_estimators': 100
+    }
+    
+    # Train model
+    model = xgb.XGBRegressor(**param)
+    model.fit(X_train, y_train)
+    
+    # Predict and calculate error
+    y_pred = model.predict(X_test)
+    error = mean_squared_error(y_test, y_pred)
+    
+    return error
+
+if __name__ == "__main__":
+    study = optuna.create_study(direction='minimize')
+    study.optimize(objective, n_trials=100)
+    
+    # Print results
+    print(f"Number of finished trials: {len(study.trials)}")
+    print(f"Best trial:")
+    trial = study.best_trial
+    print(f"Value: {trial.value}")
+    print(f"Params: {trial.params}")
