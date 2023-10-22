@@ -1,0 +1,19 @@
+from sklearn.metrics import make_scorer
+
+def top_1_percent_lift(y_true, y_pred_proba):
+    # Number of instances to consider for top 1%
+    top_1_percent = int(0.01 * len(y_true))
+    
+    # Get the indices of the top 1% predicted probabilities
+    top_indices = np.argsort(y_pred_proba)[-top_1_percent:]
+    
+    # Number of actual positives in the top 1% of predictions
+    actual_positives = y_true.iloc[top_indices].sum()
+    
+    # Expected number of positives in a random 1% sample
+    expected_positives = y_true.sum() * 0.01
+    
+    lift = actual_positives / expected_positives
+    return lift
+
+lift_scorer = make_scorer(top_1_percent_lift, needs_proba=True)
