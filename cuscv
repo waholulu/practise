@@ -17,3 +17,48 @@ def top_1_percent_lift(y_true, y_pred_proba):
     return lift
 
 lift_scorer = make_scorer(top_1_percent_lift, needs_proba=True)
+
+
+
+
+
+
+# Define separate scoring functions for each metric
+def lift_at_1_percent(y_true, y_scores):
+    top_1_percent = max(1, int(0.01 * len(y_true)))
+    top_indices = np.argsort(y_scores)[-top_1_percent:]
+    actual_positives = y_true.iloc[top_indices].sum()
+    expected_positives = y_true.sum() * 0.01
+    lift = actual_positives / expected_positives if expected_positives != 0 else 0
+    return lift
+
+def true_positives_at_1_percent(y_true, y_scores):
+    top_1_percent = max(1, int(0.01 * len(y_true)))
+    top_indices = np.argsort(y_scores)[-top_1_percent:]
+    actual_positives = y_true.iloc[top_indices].sum()
+    return actual_positives
+
+def num_samples_at_1_percent(y_true, y_scores):
+    top_1_percent = max(1, int(0.01 * len(y_true)))
+    return top_1_percent
+
+# Make scorers
+scorers = {
+    'lift@1%': make_scorer(lift_at_1_percent, needs_proba=True),
+    'true_positives@1%': make_scorer(true_positives_at_1_percent, needs_proba=True),
+    'num_samples@1%': make_scorer(num_samples_at_1_percent, needs_proba=True)
+}
+
+# Perform cross-validation
+results = cross_validate(model, X, pd.Series(y), scoring=scorers, cv=cv, return_train_score=False, n_jobs=-1)
+
+# Save the results in a dataframe
+df_results = pd.DataFrame({
+    "Fold": range(1, len(results['test_lift@1%']) + 1),
+    "Lift@1%": results['test_lift@1%'],
+    "True Positives@1%": results['test_true_positives@1%'],
+    "Num Samples@1%": results['test_num_samples@1%'],
+    "Runtime (seconds)": results['fit_time'] + results['score_time']
+})
+
+df_results
