@@ -62,3 +62,35 @@ df_results = pd.DataFrame({
 })
 
 df_results
+
+
+
+import numpy as np
+from sklearn.metrics import make_scorer, roc_auc_score, f1_score
+from sklearn.model_selection import cross_validate
+
+# Custom lift at top 1% scorer
+def top_1_percent_lift(y_true, y_pred_proba):
+    # ...
+
+lift_scorer = make_scorer(top_1_percent_lift, needs_proba=True)
+
+# Custom weighted AUC-ROC scorer
+weighted_auc_scorer = make_scorer(roc_auc_score, needs_proba=True, multi_class='ovr', average='weighted')
+
+# Custom F1 score for top 1% scorer
+def f1_score_top_1_percent(y_true, y_pred_proba):
+    top_1_percent = int(0.01 * len(y_true))
+    top_indices = np.argsort(y_pred_proba)[-top_1_percent:]
+    y_true_top = y_true.iloc[top_indices]
+    y_pred_top = np.ones(top_1_percent)
+    return f1_score(y_true_top, y_pred_top)
+
+f1_scorer = make_scorer(f1_score_top_1_percent, needs_proba=True)
+
+# Including all scorers in cross_validate
+scorers = {'lift@1%': lift_scorer, 'weighted_auc': weighted_auc_scorer, 'f1@1%': f1_scorer}
+
+results = cross_validate(estimator, X, y, scoring=scorers, cv=5)
+
+
