@@ -1,0 +1,27 @@
+import pandas as pd
+from sklearn.datasets import load_iris
+from sklearn.feature_selection import mutual_info_classif
+
+# Load the Iris dataset
+data = load_iris()
+X = pd.DataFrame(data.data, columns=data.feature_names)
+y = data.target
+
+# Compute mutual information
+mi = mutual_info_classif(X, y, discrete_features=False)
+
+# Compute correlation
+correlation = X.corrwith(pd.Series(y), method='pearson')
+
+# Compute ratio of zero values
+zero_ratio = (X == 0).mean()
+
+# Create a DataFrame to hold the results
+summary_df = pd.DataFrame({
+    'Mutual Information': mi,
+    'Correlation': correlation,
+    'Zero Ratio': zero_ratio
+})
+
+# Print the summary DataFrame
+print(summary_df)
