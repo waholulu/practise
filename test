@@ -1,0 +1,17 @@
+WITH RankedData AS (
+  SELECT
+    X,
+    Y,
+    Z,
+    ROW_NUMBER() OVER (PARTITION BY X ORDER BY Y DESC NULLS LAST) AS rn
+  FROM
+    your_table_name
+)
+SELECT
+  X,
+  Y,
+  Z
+FROM
+  RankedData
+WHERE
+  rn = 1;
