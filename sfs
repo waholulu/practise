@@ -1,0 +1,36 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.datasets import make_classification
+from sklearn.feature_selection import SequentialFeatureSelector
+
+# Creating a synthetic dataset
+X, y = make_classification(n_samples=1000, n_features=20, n_informative=2, n_redundant=10, random_state=42)
+
+# Splitting the dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+
+# Initializing the classifier
+classifier = LogisticRegression()
+
+# Initializing Sequential Feature Selector
+sfs = SequentialFeatureSelector(classifier, n_features_to_select=5, direction='forward')
+
+# Fitting the SFS on the training data
+sfs.fit(X_train, y_train)
+
+# Getting the indices of selected features
+selected_features = sfs.get_support(indices=True)
+print("Indices of selected features:", selected_features)
+
+# Transforming the training and testing data to keep only the selected features
+X_train_selected = sfs.transform(X_train)
+X_test_selected = sfs.transform(X_test)
+
+# Training the classifier with the selected features
+classifier.fit(X_train_selected, y_train)
+
+# Scoring the model
+score = classifier.score(X_test_selected, y_test)
+print("Model accuracy with selected features:", score)
