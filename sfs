@@ -34,3 +34,51 @@ classifier.fit(X_train_selected, y_train)
 # Scoring the model
 score = classifier.score(X_test_selected, y_test)
 print("Model accuracy with selected features:", score)
+
+
+
+
+
+
+
+
+
+
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.datasets import make_classification
+from sklearn.feature_selection import SequentialFeatureSelector
+
+# Creating a synthetic dataset
+X, y = make_classification(n_samples=1000, n_features=20, n_informative=2, n_redundant=10, random_state=42)
+
+# Assigning feature names
+feature_names = [f"feature{i+1}" for i in range(X.shape[1])]
+
+# Splitting the dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+
+# Initializing the classifier
+classifier = LogisticRegression()
+
+# Initializing Sequential Feature Selector
+sfs = SequentialFeatureSelector(classifier, n_features_to_select=5, direction='forward')
+
+# Fitting the SFS on the training data
+sfs.fit(X_train, y_train)
+
+# Getting the indices of selected features
+selected_features_indices = sfs.get_support(indices=True)
+print("Indices of selected features:", selected_features_indices)
+
+# Getting the names of selected features
+selected_features_names = np.array(feature_names)[selected_features_indices]
+print("Names of selected features:", selected_features_names)
+
+# Saving the selected feature names to a CSV file
+selected_features_df = pd.DataFrame(selected_features_names, columns=["Selected Features"])
+selected_features_df.to_csv("selected_features.csv", index=False)
+print("Selected feature names saved to 'selected_features.csv'")
+
