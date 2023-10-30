@@ -1,0 +1,26 @@
+# ... [previous code]
+
+# Fetch data from BigQuery
+df = client.query(sql).to_dataframe()
+
+# Find all string columns and columns that start with "emb"
+string_columns = df.select_dtypes(include='object').columns.tolist()
+embedding_features = [col for col in df.columns if col.startswith("emb")]
+
+# Print found columns (optional)
+print("String Columns:", string_columns)
+print("Embedding Features:", embedding_features)
+
+# Prepare features (X) and target (y) for model training
+X = df.drop(columns=["ip6"]).astype(int)
+y = df["ip6"].astype(int)
+
+# Initialize and train CatBoost classifier with categorical and embedding features
+model = CatBoostClassifier(
+    cat_features=string_columns, 
+    embedding_features=embedding_features,
+    verbose=False
+)
+model.fit(X, y)
+
+# ... [remaining code]
