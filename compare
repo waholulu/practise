@@ -1,0 +1,25 @@
+def create_comparison_query(table_a, table_b, key_column, columns_to_compare):
+    # Base of the query
+    query = f"""
+SELECT
+  A.{key_column},
+  {', '.join([f"CASE WHEN A.{col} != B.{col} THEN '{col}' ELSE NULL END AS diff_{col}" for col in columns_to_compare])}
+FROM
+  `{table_a}` AS A
+FULL OUTER JOIN
+  `{table_b}` AS B
+ON
+  A.{key_column} = B.{key_column}
+WHERE
+  {' OR '.join([f"A.{col} != B.{col}" for col in columns_to_compare])}
+"""
+    return query
+
+# Usage
+table_a = 'project.dataset.tableA'
+table_b = 'project.dataset.tableB'
+key_column = 'id'  # Replace with your actual key column name
+columns_to_compare = ['column1', 'column2', 'column3']  # Replace with your actual column names
+
+query = create_comparison_query(table_a, table_b, key_column, columns_to_compare)
+print(query)
