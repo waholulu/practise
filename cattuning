@@ -60,3 +60,75 @@ study.optimize(objective, n_trials=50)  # You can increase n_trials for a thorou
 best_params = study.best_params
 
 print(f"Best parameters: {best_params}")
+
+
+
+
+
+
+import optuna
+from catboost import CatBoostRegressor, Pool
+from sklearn.metrics import make_scorer
+import numpy as np
+import pandas as pd
+
+# Custom metric function for CatBoost
+def top_1_percent_lift(y_true, y_pred_proba):
+    top_1_percent = int(0.01 * len(y_true))
+    top_indices = np.argsort(y_pred_proba)[-top_1_percent:]
+    actual_positives = y_true.iloc[top_indices].sum()
+    expected_positives = y_true.sum() * 0.01
+    lift = actual_positives / expected_positives
+    return lift
+
+# Define the Optuna objective function with the custom evaluation metric
+def objective(trial):
+    train_pool = Pool(X_train, y_train)
+    valid_pool = Pool(X_valid, y_valid)
+
+    # Hyperparameters to be tuned
+    param = {
+        'iterations': trial.suggest_int('iterations', 100, 1000),
+        # ... other hyperparameters ...
+        'loss_function': 'Logloss',
+        'eval_metric': 'AUC',
+    }
+
+    # Instantiate the CatBoost model
+    catboost_model = CatBoostRegressor(**param)
+
+    # Fit the model
+    catboost_model.fit(train_pool, eval_set=valid_pool, verbose=0)
+
+    # Make predictions (probability of the positive class for binary classification)
+    y_pred_proba = catboost_model.predict(valid_pool, prediction_type='Probability')[:, 1]
+    
+    # Calculate the lift score
+    lift_score = top_1_percent_lift(y_valid, y_pred_proba)
+
+    return lift_score
+
+# Assuming X_train, y_train, X_valid, y_valid are already defined and are your dataset splits
+# train_pool = Pool(X_train, y_train)
+# valid_pool = Pool(X_valid, y_valid)
+
+# Create a study object
+study = optuna.create_study(direction='maximize')
+
+# Optimize the study, the objective function is called for each trial
+study.optimize(objective, n_trials=50)
+
+# Collecting the performance of all parameters tested into a dataframe
+results = study.trials_dataframe(attrs=('number', 'value', 'params', 'state'))
+
+# Saving the results to a CSV file
+results.to_csv('catboost_optuna_results.csv', index=False)
+
+# The best parameters found
+best_params = study.best_params
+best_lift_score = study.best_value
+
+print(f"Best parameters: {best_params}")
+print(f"Best lift score: {best_lift_score}")
+
+
