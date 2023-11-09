@@ -1,0 +1,25 @@
+pip install torchviz
+import torch
+from torchviz import make_dot
+from models import TransformerModel, ClassIP  # Assuming TransformerModel and ClassIP are defined in models.py
+
+# Define the size of the input data
+batch_size = 512  # as per your global variables
+len_dy = 70  # as per your global variables
+embedding_size = 256  # as per your global variables
+input_tensor = torch.rand(batch_size, len_dy, 3)  # The '3' here assumes three channels/features as per your model's forward method
+
+# Create an instance of the TransformerModel with the given parameters
+model = TransformerModel(nhead=16, nhid=512, nlayers=6, dropout=0.05)
+
+# Generate a random input tensor of appropriate shape
+dummy_input = torch.randint(0, 100, (batch_size, len_dy, 3))
+
+# Perform a forward pass of the model (may need to move the model and input to the same device, e.g., CPU or CUDA)
+output = model(dummy_input)
+
+# Visualize the model
+visual_graph = make_dot(output, params=dict(list(model.named_parameters()) + [('input', dummy_input)]))
+
+# Save the visualization to a file
+visual_graph.render('TransformerModel', format='png')
