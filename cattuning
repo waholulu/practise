@@ -128,6 +128,14 @@ results.to_csv('catboost_optuna_results.csv', index=False)
 best_params = study.best_params
 best_lift_score = study.best_value
 
+
+
+   if trial.suggest_categorical('handle_class_imbalance', [True, False]):
+        param.update({
+            'auto_class_weights': 'Balanced'
+        })
+    
+
 print(f"Best parameters: {best_params}")
 print(f"Best lift score: {best_lift_score}")
 
