@@ -1,0 +1,35 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import StratifiedShuffleSplit
+
+
+def stratified_downsampling(df, important_features, downsample_size):
+    """
+    Conducts stratified downsampling on a DataFrame based on important features.
+    
+    Parameters:
+    df (DataFrame): The original DataFrame.
+    important_features (list): List of column names of important features for stratification.
+    downsample_size (float): Fraction of the original size to which the DataFrame should be downsampled.
+    
+    Returns:
+    DataFrame: A downsampled DataFrame maintaining the distribution of the important features.
+    """
+    # Combine important features into a single column for stratification
+    stratify_col = df[important_features].apply(lambda x: '_'.join(x.astype(str)), axis=1)
+
+    # Create a StratifiedShuffleSplit object
+    sss = StratifiedShuffleSplit(n_splits=1, test_size=downsample_size, random_state=42)
+
+    # Get indices for downsampled DataFrame
+    for _, downsample_idx in sss.split(df, stratify_col):
+        downsampled_df = df.iloc[downsample_idx]
+
+    return downsampled_df
+
+    
+# Define your important features
+important_features = ['feature1', 'feature2', ...]  # Replace with your actual feature names
+
+# Conduct stratified downsampling
+downsampled_df = stratified_downsampling(df, important_features, downsample_size=0.5)
