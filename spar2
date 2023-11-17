@@ -1,0 +1,74 @@
+import numpy as np
+import math
+import shap
+import pandas as pd
+
+# Custom Model Wrapper Class
+class ModelWrapper:
+    def __init__(self, coefficients, max_iteration, feature_names):
+        """
+        Initialize the model wrapper with coefficients, maximum iteration, and feature names.
+
+        :param coefficients: Dictionary containing model coefficients.
+        :param max_iteration: The maximum iteration value used in the score calculation.
+        :param feature_names: List of feature names used in the model.
+        """
+        self.coefficients = coefficients
+        self.max_iteration = max_iteration
+        self.feature_names = feature_names
+
+    def predict(self, X):
+        """
+        Predict function that will be used by SHAP for calculating feature importance.
+
+        :param X: A numpy array or pandas DataFrame containing the features.
+        :return: A numpy array of predictions.
+        """
+        # Ensure X is a numpy array
+        if not isinstance(X, np.ndarray):
+            X = np.array(X)
+
+        predictions = []
+        for row in X:
+            result = 1.0
+            for time_flag in range(self.max_iteration):
+                sum = 0
+                for feature_name in self.feature_names:
+                    sum += row[self.feature_names.index(feature_name)] * float(self.coefficients.get(feature_name, 0))
+                sum = sum + time_flag * float(self.coefficients.get('t', 0)) + self.coefficients.get('Intercept', 0)
+                try:
+                    measure_value = float(math.exp(sum)) / float(1 + math.exp(sum))
+                except OverflowError:
+                    measure_value = 1.0
+                result *= (1.0 - measure_value)
+            predictions.append(1.0 - result)
+
+        return np.array(predictions)
+
+# Example Usage
+
+# Assuming cprx_coeff is your model coefficients dictionary
+feature_names = sorted([key for key in cprx_coeff.keys() if key not in ['Intercept', 't']])
+max_iteration = 91  # Example value, set based on your model's logic
+
+# Initialize the model wrapper
+model_wrapper = ModelWrapper(cprx_coeff, max_iteration, feature_names)
+
+# Prepare your data (assuming df is your DataFrame)
+X = df.drop(columns=['target'])  # Replace 'target' with your actual target column name
+
+# Initialize SHAP KernelExplainer
+background_data = shap.kmeans(X, 10)  # Adjust the number of clusters as needed
+explainer = shap.KernelExplainer(model_wrapper.predict, background_data)
+
+# Calculate SHAP values (this might take some time depending on the dataset size)
+shap_values = explainer.shap_values(X, nsamples='auto')
+
+# Visualize the SHAP values to understand feature importance
+
+# Summary plot
+shap.summary_plot(shap_values, X)
+
+# Dependence plot for a specific feature
+# Replace 'feature_name' with an actual feature name from your dataset
+shap.dependence_plot('feature_name', shap_values, X)
