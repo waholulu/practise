@@ -1,0 +1,36 @@
+from pyspark.sql import SparkSession
+import pandas as pd
+
+# Initialize Spark session (assuming it's already configured in your environment)
+spark = SparkSession.builder.appName("Model Standardization").getOrCreate()
+
+# Database and session variables (from your old code)
+db = "dev_rx_benefit_enc"
+pf = "mdl_w_extn1_phar_rap_sw"
+run = 20220930
+
+# Assuming the model coefficients are stored in a specific table or a specific format
+model_coefficient_table = f"{db}.rap_recal_ME_Rx_mdl"  # Example, replace 'ME Rx' with the appropriate indicator
+
+# Load model coefficients from the database
+model_coeff_df = spark.table(model_coefficient_table).toPandas()
+
+# Extract features and coefficients from the DataFrame
+# Assuming the coefficient data frame has columns 'feature' and 'coefficient'
+coefficients = model_coeff_df.set_index('feature')['coefficient'].to_dict()
+
+# Load feature data from the database for standard deviation calculation
+feature_table_name = f"{db}.{pf}_features_w_target_cpnonrx_cmk_or_xtrnl_rx_16m_{run}"
+feature_data_df = spark.table(feature_table_name).toPandas()
+
+# Calculate standard deviations for each feature
+std_devs = feature_data_df.std()
+
+# Standardize the coefficients
+standardized_coeffs = {feature: coeff / std_devs.get(feature, 1) for feature, coeff in coefficients.items()}
+
+# Convert standardized coefficients to DataFrame
+standardized_coeff_df = pd.DataFrame(list(standardized_coeffs.items()), columns=['Feature', 'Standardized Coefficient'])
+
+# Display the standardized coefficients
+print(standardized_coeff_df)
