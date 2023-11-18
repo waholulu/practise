@@ -1,23 +1,28 @@
 import pandas as pd
 import re
 
-# Provided text
-text = """
+# Text data
+text_data = """
 466
-testtest
+rasdfasdfasdfas
 24.57
-time 318.88
+time:318.88
 464
-testtest
+asdfasdfasde asf
 24.54
-time 317.88
+time:317.88
 """
 
-# Regular expression pattern to extract the required information
-pattern = r"(\d+)\s+[\w\s]+\s+(\d+\.\d+)\s+time:(\d+\.\d+)"
+# Splitting the text into lines
+lines = text_data.strip().split('\n')
 
-# Using regex to find all matches
-matches = re.findall(pattern, text)
+# Extracting required information (lines 1, 3, 4)
+data = []
+for i in range(0, len(lines), 4):
+    length = int(lines[i])
+    lift = float(lines[i+2])
+    time = float(re.search(r"time:(\d+.\d+)", lines[i+3]).group(1))
+    data.append([length, lift, time])
 
-# Creating a DataFrame from the matches
-df = pd.DataFrame(matches, columns=["length", "lift", "time"])
+# Creating the DataFrame
+df = pd.DataFrame(data, columns=['length', 'lift', 'time'])
