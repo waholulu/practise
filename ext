@@ -1,0 +1,25 @@
+import pandas as pd
+import re
+
+# Provided text
+text = """
+466
+testtest
+24.57
+time 318.88
+464
+testtest
+24.54
+time 317.88
+"""
+
+# Extracting the data using regular expression
+data = re.findall(r'(\d+)\ntesttest\n(\d+\.\d+)\ntime (\d+\.\d+)', text)
+
+# Creating a DataFrame
+df = pd.DataFrame(data, columns=['length', 'lift', 'time'])
+
+# Converting columns to appropriate data types
+df = df.astype({'length': int, 'lift': float, 'time': float})
+
+df
