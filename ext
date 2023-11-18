@@ -13,13 +13,11 @@ testtest
 time 317.88
 """
 
-# Extracting the data using regular expression
-data = re.findall(r'(\d+)\ntesttest\n(\d+\.\d+)\ntime (\d+\.\d+)', text)
+# Regular expression pattern to extract the required information
+pattern = r"(\d+)\s+[\w\s]+\s+(\d+\.\d+)\s+time:(\d+\.\d+)"
 
-# Creating a DataFrame
-df = pd.DataFrame(data, columns=['length', 'lift', 'time'])
+# Using regex to find all matches
+matches = re.findall(pattern, text)
 
-# Converting columns to appropriate data types
-df = df.astype({'length': int, 'lift': float, 'time': float})
-
-df
+# Creating a DataFrame from the matches
+df = pd.DataFrame(matches, columns=["length", "lift", "time"])
