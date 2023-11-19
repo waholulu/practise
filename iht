@@ -1,0 +1,37 @@
+from imblearn.under_sampling import InstanceHardnessThreshold
+import pandas as pd
+from catboost import CatBoostClassifier
+
+# Assuming X, y, valid_pool, y_val, string_columns, ratios are defined elsewhere in your code
+
+# Replace RandomUnderSampler with InstanceHardnessThreshold
+undersamplers = {'instance_hardness': InstanceHardnessThreshold}
+results_filename = "combined_results_cat_iht_r3.csv"
+
+# Iterate through undersamplers, ratios, and repetitions
+for undersampler_name, Undersampler in undersamplers.items():
+    for ratio in ratios:
+        for rp in range(10):
+            print(ratio)
+            print(rp)
+            # InstanceHardnessThreshold requires an estimator. Assuming a default estimator here, can be replaced
+            undersampler = Undersampler(sampling_strategy=ratio, random_state=rp * 100, estimator=CatBoostClassifier(verbose=False))
+            X_res, y_res = undersampler.fit_resample(X, y)
+
+            # Initialize the CatBoost classifier
+            model = CatBoostClassifier(verbose=False, cat_features=string_columns)
+
+            # Train the model
+            model.fit(X_res, y_res, eval_set=valid_pool)
+            y_pred_probm = model.predict_proba(valid_pool)
+            y_pred_prob = y_pred_probm[:, 1]
+            test_lift_score = lift_at_1_percent(y_val, y_pred_prob)
+
+            # Create a DataFrame for the results
+            results_df = pd.DataFrame({"sampler": [undersampler_name], "ratio": [ratio], "lift": [test_lift_score]})
+            print(test_lift_score)
+
+            # Append the results to the CSV file
+            with open(results_filename, 'a') as f:
+                # Write header only for the first time, else append without header
+                results_df.to_csv(f, header=f.tell() == 0, index=False)
