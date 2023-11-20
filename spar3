@@ -1,0 +1,32 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import stddev, col
+import pandas as pd
+
+# Initialize Spark session (assuming it's already configured in your environment)
+spark = SparkSession.builder.appName("Model Standardization").getOrCreate()
+
+# Database and session variables (from your old code)
+db = "your_database_name"  # Replace with your actual database name
+table_name = "your_table_name"  # Replace with your actual table name
+model_coefficient_table = "your_model_coefficient_table"  # Replace with the table name containing the model coefficients
+
+# Load model coefficients from the database
+model_coeff_df = spark.sql(f"SELECT * FROM {db}.{model_coefficient_table}").toPandas()
+
+# Load feature data from the database for standard deviation calculation
+feature_data_df = spark.sql(f"SELECT * FROM {db}.{table_name}").toPandas()
+
+# Calculate standard deviations for each feature
+std_devs = feature_data_df.std()
+
+# Standardize the coefficients
+standardized_coeffs = {}
+for feature, coeff in model_coeff_df.set_index('feature')['coefficient'].iteritems():
+    std_dev = std_devs.get(feature, 1)  # Default to 1 to avoid division by zero
+    standardized_coeffs[feature] = coeff / std_dev
+
+# Convert standardized coefficients to DataFrame
+standardized_coeff_df = pd.DataFrame(list(standardized_coeffs.items()), columns=['Feature', 'Standardized Coefficient'])
+
+# Display the standardized coefficients
+print(standardized_coeff_df)
