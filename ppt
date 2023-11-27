@@ -28,3 +28,23 @@ Poor Generalization: A model trained on imbalanced data may not generalize well 
 Inaccurate Performance Metrics: Standard performance metrics like accuracy can be misleading in the context of imbalanced datasets. A model might achieve high accuracy by simply predicting the majority class all the time, but this doesn't mean it's performing well on the task it's supposed to solve, especially if the minority class is important.
 
 Overfitting Risk: There's a risk that the model might overfit to the majority class. Since there are more examples of this class, the model might end up learning noise in the majority class data instead of generalizing from the underlying patterns.
+
+
+
+Iterations (also known as Trees or N_estimators): This is the number of trees to be built in the model. More trees can improve the model's accuracy but also increase the computation time and risk of overfitting.
+
+Depth: This parameter defines the depth of each tree. A deeper tree can model more complex relationships but also increases the risk of overfitting and requires more computational resources.
+
+Learning Rate: Also known as the shrinkage or eta in other algorithms, this parameter controls the contribution of each tree to the final prediction. A smaller learning rate requires more trees to model all the relationships but can lead to a more accurate and generalized model.
+
+Random Strength: This parameter is used in the splitting algorithm, particularly for dealing with categorical features. It specifies the amount of randomness to be used for choosing features to split on, helping in preventing overfitting.
+
+Bagging Temperature: Used in the Bayesian bootstrap, this parameter controls the degree of randomness for bagging. A higher value provides more diverse subsamples, which can help in reducing overfitting.
+
+Border Count: This is used in the quantization of continuous features. It represents the number of splits considered for each continuous feature. Higher values can lead to more precise splits but increase computation time and overfitting risk.
+
+Leaf Estimation Iterations: This is the number of iterations used in the optimization of the values in the leaves. More iterations can lead to a more accurate model but can also cause overfitting and increase computation time.
+
+Scale Pos Weight: This parameter is crucial for imbalanced datasets. It’s used to scale the weight of the positive class (usually the minority class) during training to combat the imbalance.
+
+OD Wait (Overfitting Detector Wait): This parameter is part of the early stopping mechanism in CatBoost. It defines the number of iterations to continue the training after the model's performance has stopped improving. A smaller value can prevent overfitting but might stop training too early, while a larger value can lead to overfitting.
