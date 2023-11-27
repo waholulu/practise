@@ -1,0 +1,30 @@
+Random Under Sampling: Reduces the size of the over-represented class by randomly discarding its samples, balancing class distribution. This method is straightforward but risks losing important data.
+
+Instance Hardness Threshold (IHT): Eliminates hard-to-classify samples from the majority class, keeping only those that are easy to classify. It aims to retain significant data while balancing the dataset.
+
+NearMiss: A set of methods that under-sample the majority class based on the distance to minority class samples. It has different versions, each selecting majority class samples based on varying criteria of closeness to minority class samples.
+
+
+Random Over Sampling: Increases the size of the under-represented class by duplicating its samples. Simple but can lead to overfitting due to repetition.
+
+SMOTE (Synthetic Minority Over-sampling Technique): Creates synthetic samples for the minority class by interpolating between existing samples. Adds diversity, reducing overfitting risks compared to random over-sampling.
+
+SMOTENC (SMOTE for Nominal and Continuous): An adaptation of SMOTE for datasets with both nominal (categorical) and continuous features. Generates synthetic samples considering both types of features, suitable for mixed-type data.
+
+
+Backward Sequential Feature Selection (BSFS): Starts with all features, then iteratively removes the least significant ones to improve model performance. Continues until a set number of features is left or no further improvement is seen.
+
+Recursive Feature Elimination (RFE): Similar to BSFS but relies on a model's feature importance to eliminate features. Repeatedly removes the least important features, building a model each time, until reaching the desired number of features.
+
+
+Optuna is a Python library for efficient hyperparameter optimization in machine learning. It automates the selection of optimal hyperparameters using advanced algorithms, supports early stopping of unpromising trials (pruning), and offers tools for easy analysis and visualization of results. Optuna is known for its user-friendly approach and computational efficiency.
+
+
+
+Bias Towards Majority Class: When there's a significant imbalance in the data, the model may become biased towards the majority class. It might perform well on the majority class while failing to accurately predict the minority class. This happens because the model has not been exposed to enough examples of the minority class to learn from.
+
+Poor Generalization: A model trained on imbalanced data may not generalize well to new, unseen data, especially if the new data has a different distribution. The model's ability to predict the minority class is often poor, which can be critical if the minority class is of greater interest (e.g., in fraud detection or disease diagnosis).
+
+Inaccurate Performance Metrics: Standard performance metrics like accuracy can be misleading in the context of imbalanced datasets. A model might achieve high accuracy by simply predicting the majority class all the time, but this doesn't mean it's performing well on the task it's supposed to solve, especially if the minority class is important.
+
+Overfitting Risk: There's a risk that the model might overfit to the majority class. Since there are more examples of this class, the model might end up learning noise in the majority class data instead of generalizing from the underlying patterns.
