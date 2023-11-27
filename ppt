@@ -48,3 +48,15 @@ Leaf Estimation Iterations: This is the number of iterations used in the optimiz
 Scale Pos Weight: This parameter is crucial for imbalanced datasets. It’s used to scale the weight of the positive class (usually the minority class) during training to combat the imbalance.
 
 OD Wait (Overfitting Detector Wait): This parameter is part of the early stopping mechanism in CatBoost. It defines the number of iterations to continue the training after the model's performance has stopped improving. A smaller value can prevent overfitting but might stop training too early, while a larger value can lead to overfitting.
+
+
+Grid Search:
+
+Approach: Exhaustively searches through a predefined grid of hyperparameters.
+Pros: Simple and guarantees finding the best combination within the grid.
+Cons: Computationally expensive and limited to specified parameter ranges.
+Optuna:
+
+Approach: Uses Bayesian optimization to efficiently search the hyperparameter space.
+Pros: More efficient than Grid Search, flexible in handling various parameter types.
+Cons: More complex and doesn't exhaustively evaluate all combinations.
