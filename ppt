@@ -87,3 +87,13 @@ Use Cases	Great for mixed data types (e.g., e-commerce)	Ideal for structured num
 Community & Support	Growing community and support.	Large, active community.	Well-established, extensive support.
 Unique Features	Symmetrical tree structure for efficient learning.	Gradient boosting method.	Ensemble method with bagging.
 
+
+Parallel Processing in GPUs: GPUs perform calculations much faster than CPUs by parallelizing operations. This parallelism, while efficient, can lead to non-deterministic results, especially in algorithms like those used in machine learning where operations are interdependent.
+
+Floating-Point Arithmetic Variability: On GPUs, floating-point calculations can produce slightly different results due to the parallel execution order. As machine learning algorithms like those in CatBoost heavily rely on such calculations, this can lead to variability in outcomes.
+
+CatBoost Specifics: In CatBoost's case, the GPU version uses different algorithms for building decision trees compared to its CPU counterpart. These algorithms are optimized for GPU architecture, favoring speed over exact reproducibility.
+
+Effect on Machine Learning Models: This non-determinism means that each run of the same CatBoost model on a GPU might produce slightly different results. While these differences are usually small, they can be significant in certain applications.
+
+Managing Non-Determinism: To manage this, users can run multiple training iterations and average the results, or stick to CPU training for cases where determinism is crucial. Additionally, setting a random seed does not guarantee identical results across runs in GPU mode.
