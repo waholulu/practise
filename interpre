@@ -1,14 +1,22 @@
 def custom_model(input_data):
-    # Unpack the input data
-    X1, X2, X3, X4, X5 = input_data
+    # Initialize an empty list to store the results
+    results = []
 
-    # Compute the output based on the value of X1
-    if X1 == 1:
-        Y = 5 * X2 + 2 * X3 + X4
-    else:  # Assuming X1 can only be 0 or 1
-        Y = 3 * X2 + X3 + 0.5 * X5
+    # Iterate over each sample in the input data
+    for sample in input_data:
+        # Unpack the variables from the current sample
+        X1, X2, X3, X4, X5 = sample
 
-    return Y
+        # Compute the output based on the value of X1
+        if X1 == 1:
+            Y = 5 * X2 + 2 * X3 + X4
+        else:  # Assuming X1 can only be 0 or 1
+            Y = 3 * X2 + X3 + 0.5 * X5
+
+        # Append the result to the results list
+        results.append(Y)
+
+    return np.array(results)
 
 
 
