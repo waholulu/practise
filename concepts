@@ -1,0 +1,5 @@
+Standardized Coefficients (Beta * s(x)): In regression models, standardized coefficients are the product of unstandardized coefficients and the standard deviation of the predictor variables. They enable comparison of the relative impact of each predictor on a common scale.
+
+Feature Importance in Tree-Based Models: This measures the significance of each feature in tree-based models like Decision Trees or Random Forests, based on the reduction in prediction error or impurity the feature brings.
+
+SHAP Values: Derived from game theory, SHAP values explain the influence of each feature on the output of machine learning models, providing a detailed and individualized interpretation of how each feature contributes to the model's predictions.
