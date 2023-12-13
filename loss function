@@ -1,0 +1,25 @@
+import catboost
+
+class WeightedLogLoss(catboost.CatBoostMetric):
+    def __init__(self, weight_positive=1.0, weight_negative=0.5):
+        super().__init__()
+        self.weight_positive = weight_positive
+        self.weight_negative = weight_negative
+
+    def get_final_error(self, errors, weight):
+        errors_weighted = errors.copy()
+        errors_weighted[errors == 1] *= self.weight_positive
+        errors_weighted[errors == 0] *= self.weight_negative
+        return np.mean(errors_weighted)
+
+# Define the CatBoost model
+model = catboost.CatBoostClassifier(
+    loss_function=WeightedLogLoss(weight_positive=2.0, weight_negative=0.1),
+    ... # Other model parameters
+)
+
+# Train the model
+model.fit(train_data, train_labels)
+
+# Make predictions
+predictions = model.predict(test_data)
