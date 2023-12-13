@@ -1,0 +1,20 @@
+import random
+
+# Step 1: Set a seed
+random.seed(42)
+
+# Step 2: Generate a list of random numbers
+random_numbers_first = [random.randint(1, 100) for _ in range(5)]
+
+# Step 3: Reset the seed to the same value
+random.seed(42)
+
+# Step 4: Generate another list of random numbers
+random_numbers_second = [random.randint(1, 100) for _ in range(5)]
+
+# Step 5: Compare the two lists
+are_lists_identical = random_numbers_first == random_numbers_second
+
+# Display the results
+random_numbers_first, random_numbers_second, are_lists_identical
+
