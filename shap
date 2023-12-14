@@ -1,0 +1,40 @@
+import numpy as np
+
+def custom_model_shap(input_array, feature_names, cprx_chronic_qtr1, cprx_chronic_qtr2, cprx_nonchronic_qtr1, cprx_nonchronic_qtr2):
+    # Function to get indices of features
+    def get_feature_indices(features, all_feature_names):
+        return [all_feature_names.index(feature) for feature in features]
+
+    # Define a function to calculate q values
+    def calculate_q(data, cprx_qtr, feature_names):
+        qtr_param_indices = get_feature_indices(cprx_qtr.parameter, feature_names)
+        qtr_params = data[:, qtr_param_indices]
+        qtr_calc = qtr_params * np.array(cprx_qtr.estimate)
+        return 1 / (1 + np.exp(-qtr_calc.sum(axis=1)))
+
+    # Index for 'chronic' feature
+    chronic_index = feature_names.index("chronic")
+
+    # Identify rows for chronic and non-chronic data
+    chronic_rows = input_array[:, chronic_index] == 1
+    non_chronic_rows = input_array[:, chronic_index] == 0
+
+    # Chronic calculations
+    q1_chronic = calculate_q(input_array[chronic_rows], cprx_chronic_qtr1, feature_names)
+    q2_chronic = calculate_q(input_array[chronic_rows], cprx_chronic_qtr2, feature_names)
+    q12_chronic = q1_chronic + q2_chronic - (q1_chronic * q2_chronic)
+
+    # Non-chronic calculations
+    q1_non_chronic = calculate_q(input_array[non_chronic_rows], cprx_nonchronic_qtr1, feature_names)
+    q2_non_chronic = calculate_q(input_array[non_chronic_rows], cprx_nonchronic_qtr2, feature_names)
+    q12_non_chronic = q1_non_chronic + q2_non_chronic - (q1_non_chronic * q2_non_chronic)
+
+    # Combine results
+    q12_combined = np.zeros(input_array.shape[0])
+    q12_combined[chronic_rows] = q12_chronic
+    q12_combined[non_chronic_rows] = q12_non_chronic
+
+    return q12_combined
+
+# Usage with SHAP
+# shap_values = explainer.shap_values(X)  # X is your input data as a numpy array
