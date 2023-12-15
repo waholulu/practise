@@ -1,0 +1,10 @@
+# Convert SHAP values to a DataFrame with feature names as columns
+shap_df = pd.DataFrame(shap_values, columns=feature_names)
+
+# You can now work with shap_df as a regular pandas DataFrame
+# For example, to get the average impact of each feature:
+average_shap = shap_df.mean().sort_values(ascending=False)
+
+# To display or export the average SHAP values
+print(average_shap)
+# average_shap.to_csv('average_shap_values.csv')  
