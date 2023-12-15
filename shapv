@@ -1,10 +1,18 @@
-# Convert SHAP values to a DataFrame with feature names as columns
-shap_df = pd.DataFrame(shap_values, columns=feature_names)
+import pandas as pd
+import numpy as np
+import shap  # assuming shap is already installed
 
-# You can now work with shap_df as a regular pandas DataFrame
-# For example, to get the average impact of each feature:
-average_shap = shap_df.mean().sort_values(ascending=False)
+# Assuming you already have a model and a dataset X
+# Create an explainer and calculate SHAP values
+explainer = shap.Explainer(model, X)
+shap_values = explainer.shap_values(X)
 
-# To display or export the average SHAP values
-print(average_shap)
-# average_shap.to_csv('average_shap_values.csv')  
+# Convert SHAP values to absolute values and then get the mean
+mean_shap_values = np.abs(shap_values).mean(axis=0)
+
+# Create a DataFrame
+feature_names = X.columns  # Adjust as per your dataset
+shap_df = pd.DataFrame({'Feature': feature_names, 'SHAP Value': mean_shap_values})
+
+# Sorting the DataFrame by SHAP Value in descending order
+shap_df = shap_df.sort_values(by='SHAP Value', ascending=False)
