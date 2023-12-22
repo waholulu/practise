@@ -1,0 +1,40 @@
+# Define the original query and the list of short names
+original_query = """
+select 
+  max(case when t.disease_cd = 'ADD' then 1 else 0 end) as Attention_Deficit_Disorders,
+  max(case when t.disease_cd = 'AFF' then 1 else 0 end) as Atrial_Fibrillation,
+  ... (other conditions) ...
+from tabletest
+"""
+
+short_name_list = ['add', 'aid', 'alc', 'ast', ...]  # add other short names as needed
+
+# Function to extract long names from the query based on short names
+def extract_long_names(query, short_names):
+    long_names = {}
+    lines = query.lower().split("\n")
+
+    for line in lines:
+        for short_name in short_names:
+            if f"'{short_name}'" in line:
+                # Extract the long name
+                long_name = line.split('as')[-1].strip().replace(',', '')
+                long_names[short_name] = long_name
+
+    return long_names
+
+# Extract the long names
+long_names = extract_long_names(original_query, short_name_list)
+
+# Generate the new BigQuery
+new_query_parts = ["SELECT *,"]
+new_query_parts.append("CASE")
+condition_parts = [f"{key.upper()} = 1" for key in long_names.keys()]
+new_query_parts.append(f"  WHEN {' OR '.join(condition_parts)} THEN 1")
+new_query_parts.append("  ELSE 0")
+new_query_parts.append("END AS new_column")
+new_query_parts.append("FROM your_table_name")
+
+new_query = "\n".join(new_query_parts)
+
+print(new_query)
