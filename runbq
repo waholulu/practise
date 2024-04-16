@@ -1,14 +1,12 @@
 import logging
 from google.cloud import bigquery
-from google.cloud import storage
+import os
 
-# Initialize clients for BigQuery and Storage
+# Initialize client for BigQuery
 bq_client = bigquery.Client()
-storage_client = storage.Client()
 
 # Parameters
-bucket_name = 'your-bucket-name'
-folder_prefix = 'path/to/your/sql/files/'
+local_folder_path = '/path/to/your/sql/files/'
 project_id = 'your-project-id'
 dataset_id = 'your-dataset-id'
 log_file = 'query_execution.log'
@@ -25,23 +23,23 @@ predefined_file_list = [
 logging.basicConfig(filename=log_file, level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-def execute_query_from_file(bucket_name, file_name):
-    """Execute a BigQuery query from a file stored in GCS and log the execution."""
-    full_path = f"{folder_prefix}{file_name}"
-    blob = storage_client.bucket(bucket_name).blob(full_path)
-    query_string = blob.download_as_text()
-    logging.info(f"Executing query from {file_name}...")
+def execute_query_from_file(file_path):
+    """Execute a BigQuery query from a local file and log the execution."""
+    with open(file_path, 'r') as file:
+        query_string = file.read()
+    logging.info(f"Executing query from {os.path.basename(file_path)}...")
     try:
         query_job = bq_client.query(query_string, project=project_id)
         query_job.result()  # Wait for the query to finish
-        logging.info(f"Query from {file_name} executed successfully.")
+        logging.info(f"Query from {os.path.basename(file_path)} executed successfully.")
     except Exception as e:
-        logging.error(f"Failed to execute query from {file_name}: {str(e)}")
+        logging.error(f"Failed to execute query from {os.path.basename(file_path)}: {str(e)}")
 
 def main():
     # Execute each query file in the predefined order
     for file_name in predefined_file_list:
-        execute_query_from_file(bucket_name, file_name)
+        file_path = os.path.join(local_folder_path, file_name)
+        execute_query_from_file(file_path)
 
 if __name__ == '__main__':
     main()
