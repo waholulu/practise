@@ -1,0 +1,27 @@
+import pandas as pd
+import json
+
+# Sample DataFrame with a column of JSON strings
+data = {
+    'id': [1, 2, 3],
+    'json_data': ['{"name": "Alice", "age": 25, "city": "New York"}',
+                  '{"name": "Bob", "age": 30, "city": "Los Angeles"}',
+                  '{"name": "Charlie", "age": 35, "city": "Chicago"}']
+}
+df = pd.DataFrame(data)
+
+# Function to parse JSON from a string
+def parse_json(data):
+    try:
+        return json.loads(data)
+    except json.JSONDecodeError:
+        return None  # or return {}, depending on how you want to handle errors
+
+# Apply this function to the json_data column
+df['parsed_json'] = df['json_data'].apply(parse_json)
+
+# Optionally, convert the parsed JSON into separate DataFrame columns
+json_df = pd.json_normalize(df['parsed_json'])
+
+# Print the results
+print(json_df)
