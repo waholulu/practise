@@ -1,0 +1,18 @@
+def extract_text(input_string):
+    # Find the position of the first '{'
+    start_index = input_string.find('{')
+    
+    # Find the position of the last '}'
+    end_index = input_string.rfind('}')
+    
+    # Extract and return the substring between the first '{' and the last '}'
+    # Add 1 to start_index to exclude the '{', and end_index is exclusive so it excludes '}'
+    if start_index != -1 and end_index != -1 and end_index > start_index:
+        return input_string[start_index + 1:end_index]
+    else:
+        return "No valid '{}' found in the input string."
+
+# Example usage
+input_string = "This is a sample string with {some important content} in the middle."
+extracted_text = extract_text(input_string)
+print("Extracted Text:", extracted_text)
