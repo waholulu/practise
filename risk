@@ -1,0 +1,14 @@
+def extract_risk(data):
+    try:
+        # Parse the JSON string into a dictionary
+        json_dict = json.loads(data)
+        # Return the value associated with the 'risk' key
+        return json_dict.get('risk')  # Returns None if 'risk' key does not exist
+    except json.JSONDecodeError:
+        return None  # or return {}, depending on how you want to handle errors
+
+# Apply this function to the json_data column
+df['risk_level'] = df['json_data'].apply(extract_risk)
+
+# Print the updated DataFrame
+print(df[['id', 'risk_level']])
