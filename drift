@@ -1,0 +1,127 @@
+import numpy as np
+import pandas as pd
+from scipy.stats import ks_2samp, wasserstein_distance, entropy
+import math
+from datetime import date
+
+def compute_psi(expected, actual, bins=10):
+    eps = 1e-10
+    min_val = min(np.min(expected), np.min(actual))
+    max_val = max(np.max(expected), np.max(actual))
+    if min_val == max_val:
+        return 0.0
+    breakpoints = np.linspace(min_val - eps, max_val + eps, bins + 1)
+    
+    expected_counts, _ = np.histogram(expected, bins=breakpoints)
+    actual_counts, _ = np.histogram(actual, bins=breakpoints)
+    
+    expected_proportions = expected_counts / len(expected)
+    actual_proportions = actual_counts / len(actual)
+    
+    mask = (expected_proportions > 0) & (actual_proportions > 0)
+    if not np.any(mask):
+        return 0.0
+    
+    expected_proportions = expected_proportions[mask]
+    actual_proportions = actual_proportions[mask]
+    
+    psi_values = (actual_proportions - expected_proportions) * np.log(actual_proportions / expected_proportions)
+    psi = np.sum(psi_values)
+    return psi
+
+def js_divergence(p, q):
+    """Compute the Jensen–Shannon Divergence between two probability distributions p and q."""
+    p = np.array(p)
+    q = np.array(q)
+    m = 0.5 * (p + q)
+    # Using log base 2 for entropy is standard, but here entropy defaults to natural log.
+    # The choice of log base doesn't affect whether it's > threshold, just magnitude. 
+    # For consistency, we can just use the default. The scale can be adjusted via thresholds.
+    return 0.5 * (entropy(p, m) + entropy(q, m))
+
+def compute_jsd(expected, actual, bins=10):
+    eps = 1e-10
+    min_val = min(np.min(expected), np.min(actual))
+    max_val = max(np.max(expected), np.max(actual))
+    if min_val == max_val:
+        return 0.0
+    breakpoints = np.linspace(min_val - eps, max_val + eps, bins + 1)
+    
+    expected_counts, _ = np.histogram(expected, bins=breakpoints)
+    actual_counts, _ = np.histogram(actual, bins=breakpoints)
+    
+    P = expected_counts / (len(expected) + eps)
+    Q = actual_counts / (len(actual) + eps)
+    
+    return js_divergence(P, Q)
+
+if __name__ == "__main__":
+    run_date = date.today().isoformat()
+    
+    # Synthetic example data
+    np.random.seed(42)
+    num_features = 10
+    n_samples = 2000
+    
+    baseline_data = np.array([np.random.normal(loc=50 + i*0.1, scale=10, size=n_samples) for i in range(num_features)]).T
+    shifts = np.random.normal(loc=0, scale=2, size=num_features)
+    current_data = np.empty_like(baseline_data)
+    for i in range(num_features):
+        current_data[:, i] = np.random.normal(loc=(50 + i*0.1 + shifts[i]), scale=10, size=n_samples)
+    
+    baseline_means = baseline_data.mean(axis=0)
+    baseline_stds = baseline_data.std(axis=0, ddof=1)
+    
+    # Thresholds (example)
+    PSI_THRESHOLD = 0.2
+    KS_PVALUE_THRESHOLD = 0.05
+    MEAN_DIFF_MULTIPLIER = 0.5
+    W_DIST_THRESHOLD = 3.0
+    JSD_THRESHOLD = 0.05
+    
+    mean_diff_thresholds = MEAN_DIFF_MULTIPLIER * baseline_stds
+    
+    results = []
+
+    for col_idx in range(num_features):
+        feature_baseline = baseline_data[:, col_idx]
+        feature_current = current_data[:, col_idx]
+        
+        # Compute metrics
+        psi = compute_psi(feature_baseline, feature_current)
+        ks_stat, ks_p_value = ks_2samp(feature_baseline, feature_current)
+        current_mean = np.mean(feature_current)
+        mean_diff = current_mean - baseline_means[col_idx]
+        mean_diff_threshold = mean_diff_thresholds[col_idx]
+        w_dist = wasserstein_distance(feature_baseline, feature_current)
+        jsd = compute_jsd(feature_baseline, feature_current)
+        
+        # Flags for each metric
+        psi_flag = psi > PSI_THRESHOLD
+        ks_p_flag = ks_p_value < KS_PVALUE_THRESHOLD
+        mean_diff_flag = abs(mean_diff) > mean_diff_threshold
+        w_dist_flag = w_dist > W_DIST_THRESHOLD
+        jsd_flag = jsd > JSD_THRESHOLD
+        
+        # Combined drift logic
+        drift_flag = psi_flag and (ks_p_flag or mean_diff_flag or w_dist_flag or jsd_flag)
+        
+        results.append({
+            "run_date": run_date,
+            "feature_id": col_idx,
+            "psi_value": psi,
+            "psi_flag": psi_flag,
+            "ks_p_value": ks_p_value,
+            "ks_p_flag": ks_p_flag,
+            "mean_diff": mean_diff,
+            "mean_diff_threshold": mean_diff_threshold,
+            "mean_diff_flag": mean_diff_flag,
+            "w_dist": w_dist,
+            "w_dist_flag": w_dist_flag,
+            "jsd": jsd,
+            "jsd_flag": jsd_flag,
+            "drift_flag": drift_flag
+        })
+    
+    df_results = pd.DataFrame(results)
+    print(df_results)
