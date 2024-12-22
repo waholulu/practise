@@ -1,0 +1,252 @@
+Thought about fine-tuning LLaMA 2 for prediction for 9 seconds
+Below is a high-level guide and example code for fine-tuning LLaMA 2 (7B) on a medical claims dataset to predict the probability that an individual will require inpatient care within the next six months. This workflow uses the Hugging Face ecosystem (i.e., transformers, datasets, peft) and illustrates one possible approach to solving your problem.
+
+Important
+
+The code below is for demonstration only and may need adjustments for your specific environment, dataset size, security/PHI policies, etc.
+Training large models (e.g., LLaMA 2 7B) requires substantial GPU resources (e.g., at least one high-memory GPU such as an A100 with 40GB+). Make sure you have the necessary infrastructure.
+Medical data is sensitive. Please ensure your data handling and model use comply with all relevant regulations (e.g., HIPAA).
+The LLaMA 2 model and weights have their own license. Be sure you follow the Meta LLaMA 2 License Agreement and any applicable usage policies.
+1. Overview of the Approach
+Data Collection & Labeling
+
+You have medical claims with fields:
+
+individual_id: Unique person ID
+icd_cd: Diagnosis code (e.g., ICD-10, ICD-9)
+dt: Date of the diagnosis
+Additionally, one code or field indicates whether the individual had an inpatient admission.
+Objective: Predict if an individual will require inpatient care within the next six months given their diagnosis history up to a certain point in time.
+
+Feature Engineering / Data Representation
+
+For each individual, aggregate their diagnosis history up to time 
+𝑇
+T (where 
+𝑇
+T is the prediction baseline date).
+Determine whether they have an inpatient event in the 6-month window following 
+𝑇
+T. That becomes the label (1 = inpatient event, 0 = no inpatient event).
+Convert each individual’s diagnosis history into a text sequence that LLaMA 2 can process.
+Model Architecture
+
+Use LLaMA 2 (7B) with a sequence classification head.
+Alternatively, use a parameter-efficient fine-tuning (PEFT) approach like LoRA to reduce GPU memory and training time.
+Training Pipeline
+
+Split data into training/validation/test.
+Tokenize the text sequences for each example.
+Fine-tune the model (with LoRA or full fine-tuning).
+Evaluate on validation and test sets.
+Serving / Inference
+
+Once the model is trained, given an individual’s diagnosis history up to time 
+𝑇
+T, you can predict the probability of inpatient care in the next six months.
+2. Example Data Preparation
+The exact preparation depends on your dataset schema and size. Below is a sketch:
+
+python
+Copy code
+import pandas as pd
+import numpy as np
+from datetime import timedelta
+
+# Suppose df has columns: individual_id, icd_cd, dt (datetime), and 'inpatient_flag' 
+# to indicate inpatient admissions.
+
+# Step 1: Sort data by individual and date
+df = df.sort_values(by=['individual_id', 'dt'])
+
+# Step 2: Create a function to label whether an inpatient admission occurs 
+# in the next 6 months from date T. For each row or baseline date, 
+# we check if there's an inpatient admission in the 6-month window.
+
+six_months = pd.Timedelta(days=180)
+
+records = []
+for individual_id, sub_df in df.groupby('individual_id'):
+    sub_df = sub_df.reset_index(drop=True)
+    # We'll build multiple "examples" per individual, 
+    # each with a cutoff T and the next 6-month label.
+    # In practice, you may want a single baseline T per individual 
+    # depending on your approach.
+    for i in range(len(sub_df)):
+        cutoff_date = sub_df.loc[i, 'dt']
+        # Get diagnosis history up to cutoff_date
+        history_df = sub_df[sub_df['dt'] <= cutoff_date]
+        # Check if there's an inpatient admission in the next 6 months
+        future_df = sub_df[(sub_df['dt'] > cutoff_date) & (sub_df['dt'] <= cutoff_date + six_months)]
+
+        label = 1 if (future_df['inpatient_flag'] == 1).any() else 0
+        
+        # Build a text representation of the diagnosis history
+        # Example: "Past diagnoses up to 2021-07-01: E11.9, I10, ... " 
+        # Keep it short or compress if needed
+        diagnoses_str = ", ".join(history_df['icd_cd'].astype(str).values)
+        text_input = f"Patient ID {individual_id}; Diagnoses up to {cutoff_date.date()}: {diagnoses_str}"
+        
+        records.append({
+            'text': text_input,
+            'label': label
+        })
+
+processed_df = pd.DataFrame(records)
+
+# Now we have a DataFrame with columns: "text" and "label".
+# We can use this for fine-tuning our classification model.
+Note: This is a simplistic example. Real-world data prep can be more complex (e.g., removing duplicates, handling extremely long histories, encoding time gaps, etc.).
+
+3. Creating a Hugging Face Dataset
+python
+Copy code
+from datasets import Dataset, DatasetDict
+
+# Convert pandas DataFrame to Hugging Face dataset
+full_dataset = Dataset.from_pandas(processed_df)
+
+# Train/Validation/Test Split (adjust split ratios as needed)
+split_dataset = full_dataset.train_test_split(test_size=0.2, seed=42)
+test_val = split_dataset['test'].train_test_split(test_size=0.5, seed=42)
+
+dataset_dict = DatasetDict({
+    'train': split_dataset['train'],
+    'validation': test_val['train'],
+    'test': test_val['test']
+})
+4. Installing and Importing Necessary Libraries
+Make sure you install the following (in a virtual environment, if possible). You will need a version of transformers that supports LLaMA 2 and peft for parameter-efficient fine-tuning:
+
+bash
+Copy code
+pip install torch transformers accelerate bitsandbytes peft datasets
+5. Loading LLaMA 2 (7B) and Tokenizer
+Important: You must have access to the LLaMA 2 7B weights (e.g., from Hugging Face with the appropriate license acceptance). Replace the model path below with the correct model ID or local path.
+
+python
+Copy code
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+model_name = "meta-llama/Llama-2-7b-hf"  # or your local checkpoint directory
+
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+# By default, this sets up for single-label classification with a linear head
+model = AutoModelForSequenceClassification.from_pretrained(
+    model_name,
+    num_labels=2,  # 2 classes: 0 or 1 for "no inpatient event" / "inpatient event"
+    torch_dtype=torch.float16,
+    device_map="auto"  # automatically place layers on GPU(s) if available
+)
+6. (Optional) Set Up LoRA (PEFT) Configuration
+Since LLaMA 2 (7B) is large, we often use parameter-efficient fine-tuning (LoRA) to reduce GPU memory usage. Below is an example using the PEFT library.
+
+python
+Copy code
+from peft import LoraConfig, get_peft_model, TaskType
+
+lora_config = LoraConfig(
+    r=8,
+    lora_alpha=32,
+    target_modules=["q_proj", "v_proj"],  # LLaMA 2 key modules
+    lora_dropout=0.05,
+    bias="none",
+    task_type=TaskType.SEQ_CLS  # sequence classification
+)
+
+peft_model = get_peft_model(model, lora_config)
+Now peft_model is a wrapped version of the original model that trains fewer parameters.
+
+7. Tokenizing the Dataset
+We need to tokenize the input text. For classification, we typically truncate or pad to a certain maximum length (max_length). Adjust as needed (128, 256, etc.) depending on memory constraints.
+
+python
+Copy code
+MAX_LENGTH = 256
+
+def tokenize_function(example):
+    return tokenizer(
+        example["text"],
+        padding="max_length",
+        truncation=True,
+        max_length=MAX_LENGTH
+    )
+
+tokenized_datasets = dataset_dict.map(tokenize_function, batched=True)
+This will create "input_ids" and "attention_mask" fields in the dataset.
+
+We also rename "label" to "labels" if needed for the Trainer:
+
+python
+Copy code
+# Rename 'label' column to 'labels' for the Trainer
+tokenized_datasets = tokenized_datasets.rename_column("label", "labels")
+
+# Set the format for PyTorch
+tokenized_datasets.set_format("torch", columns=["input_ids", "attention_mask", "labels"])
+8. Fine-Tuning with the Hugging Face Trainer
+python
+Copy code
+from transformers import Trainer, TrainingArguments
+
+training_args = TrainingArguments(
+    output_dir="llama2_inpatient_results",
+    evaluation_strategy="epoch",
+    save_strategy="epoch",
+    logging_dir="llama2_inpatient_logs",
+    num_train_epochs=3,             # Adjust
+    per_device_train_batch_size=2,  # Adjust for your GPU
+    per_device_eval_batch_size=2,   # Adjust for your GPU
+    learning_rate=1e-4,             # Adjust
+    weight_decay=0.01,
+    logging_steps=50,
+    fp16=True,                      # use half precision if GPU supports it
+    report_to="none"                # or "tensorboard"
+)
+
+trainer = Trainer(
+    model=peft_model,  # If using LoRA
+    args=training_args,
+    train_dataset=tokenized_datasets["train"],
+    eval_dataset=tokenized_datasets["validation"],
+)
+Finally, start training:
+
+python
+Copy code
+trainer.train()
+This will produce checkpoints in the output_dir. You can then evaluate the final model on the test set:
+
+python
+Copy code
+metrics = trainer.evaluate(tokenized_datasets["test"])
+print(metrics)
+9. Using the Model for Inference
+To get the probability that a given text (diagnosis history) leads to inpatient care within 6 months:
+
+python
+Copy code
+from transformers import pipeline
+
+# Load the trained model (checkpoint) with the Trainer or pipeline
+inference_model = AutoModelForSequenceClassification.from_pretrained(
+    "llama2_inpatient_results/checkpoint-XXXX",  # latest or best checkpoint
+    torch_dtype=torch.float16,
+    device_map="auto"
+)
+inference_pipe = pipeline(
+    "text-classification",
+    model=inference_model,
+    tokenizer=tokenizer,
+    return_all_scores=True,
+    function_to_apply='softmax',
+    device=0  # or "cuda:0"
+)
+
+# Example: single new patient’s text
+patient_text = "Patient ID 999; Diagnoses up to 2024-01-01: E11.9, I10, Z79.4"
+predictions = inference_pipe(patient_text)
+print(predictions)
+The pipeline will return a list of two class scores (for label 0 and label 1). The second score corresponds to the probability that the model predicts inpatient event within 6 months.
