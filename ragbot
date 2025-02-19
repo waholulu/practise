@@ -1,0 +1,295 @@
+"""
+S.A.G.E. (Simple AI Guide for Everyone) Chatbot v1.02
+
+This Streamlit application demonstrates a Retrieval-Augmented Generation (RAG) approach 
+using Vertex AI’s embedding and generative models. It loads pre-computed document embeddings 
+from a pickle file, retrieves the most relevant document chunks based on user queries, and 
+then uses a generative model to produce an answer.
+
+Author: [Your Name or Team]
+"""
+
+import streamlit as st
+import vertexai
+from vertexai.language_models import TextEmbeddingInput, TextEmbeddingModel
+from vertexai.generative.models import GenerativeModel, GenerationConfig
+import pickle
+import pandas as pd
+import numpy as np
+import re
+import os
+
+# Initialize Vertex AI (specify your project and location).
+vertexai.init(project="anbc-dev-hcm-cm-de", location="us-central1")
+
+# -- Model and Embedding Configurations --
+GEMINI_MODEL_NAME = "gemini-1.5-pro-001"
+EMBEDDING_MODEL_NAME = "text-embedding-004"
+EMBEDDINGS_PICKLE_FILE = "./src/embeddings_all_chunk_test_multi.pkl"
+EMBEDDING_DIMENSIONALITY = None  # Set to an integer if needed
+
+# Initialize the generative model and the embedding model.
+generative_model = GenerativeModel(GEMINI_MODEL_NAME)
+embedding_model = TextEmbeddingModel.from_pretrained(EMBEDDING_MODEL_NAME)
+
+# -- Load Saved Embeddings and Metadata from Pickle --
+with open(EMBEDDINGS_PICKLE_FILE, "rb") as f:
+    loaded_embeddings, loaded_metadata = pickle.load(f)
+
+# Convert to a DataFrame for convenience, adding the embeddings.
+df = pd.DataFrame(loaded_metadata)
+df["embeddings"] = loaded_embeddings
+
+# -- Streamlit Page Configuration --
+st.set_page_config(page_title="S.A.G.E. Chatbot v1.02", page_icon=":robot:")
+
+# Display the title and subtitle in a container for centered layout.
+with st.container():
+    st.markdown(
+        "<h1 style='text-align: center;'><span style='color: red; font-weight: bold;'>S.A.G.E.</span></h1>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<p style='text-align: center; font-size:18px; color:gray;'>Simple AI Guide for Everyone</p>",
+        unsafe_allow_html=True,
+    )
+
+# -- Chat History State Management --
+if "messages" not in st.session_state:
+    st.session_state["messages"] = []
+
+# A list of default questions that appear as clickable bubbles for convenience.
+default_questions = [
+    "What are the difference between EMIS_MEMBERSHIP and PRSPCTV_MEMBERSHIP table?",
+    "What is service offering engagement (SOE)?",
+    "What is Aetna One Flex program?",
+    "What are the difference between paid amount, allowed amount and billed amount?"
+]
+
+# Keep track if we've already displayed the default questions.
+if "questions_shown" not in st.session_state:
+    st.session_state["questions_shown"] = True
+
+def create_links(filenames, text_chunk):
+    """
+    Convert filenames in the text_chunk into clickable links pointing 
+    to a predetermined base URL.
+
+    Args:
+        filenames (list of str): List of filenames to convert into links.
+        text_chunk (str): The text that may contain references to these filenames.
+
+    Returns:
+        str: Text with each filename replaced by a clickable link.
+    """
+    base_url = "https://aetnet.aetna.com/informatics_contentMgt/assets/data_warehouse/user_guide/"
+    for filename in filenames:
+        escaped_filename = re.escape(filename)
+        pattern = rf"\b{escaped_filename}\b"
+        link = f"[{filename}]({base_url}{filename})"
+        text_chunk = re.sub(pattern, link, text_chunk)
+    return text_chunk
+
+# Filenames referenced in your use-case (for linking).
+filenames = [
+    "proxyid.pdf", "pd_tabsum.pdf", "pg_tabsum.pdf", "gi_tabsum.pdf", "et_read.pdf",
+    "cl_tabsum.pdf", "ah_tabsum.pdf", "at_read.pdf", "pr_tabsum.pdf", "1_read.pdf",
+    "or_tabsum.pdf", "aw_tabsum.pdf", "ea_tabsum.pdf", "cl_read.pdf", "gi_read.pdf",
+    "symmetry_etg.pdf", "pd_read.pdf", "me_tabsum.pdf", "ec_tabsum.pdf", "awca_read.pdf",
+    "sh_tabsum.pdf", "bh_read.pdf", "sr_tabsum.pdf", "et_tabsum.pdf", "pg_read.pdf",
+    "must_sources.pdf", "readmission_logic.pdf", "en_read.pdf", "me_read.pdf", "Ir_read.pdf",
+    "sh_read.pdf", "atv_in_survey_tables.pdf", "or_read.pdf", "pred_tabsum.pdf", "xtr_read.pdf",
+    "ea_read.pdf", "se_read.pdf", "at_tabsum.pdf", "pe_read.pdf", "pe_tabsum.pdf",
+    "hp_read.pdf", "hpd_tabsum.pdf", "introduction.pdf", "etgconcepts.pdf", "rx_tabsum.pdf",
+    "pl_tabsum.pdf", "complex_history_reference.pdf", "ah_read.pdf", "cov_read.pdf",
+    "pm_read.pdf", "xc_tabsum.pdf", "med_read.pdf", "sr_read.pdf", "pr_read.pdf",
+    "mq_tabsum.pdf", "rx_read.pdf", "survey_business_use_cases.pdf", "rx_archived_claims.pdf",
+    "clinical_read.pdf", "ec_read.pdf", "seg_tabsum.pdf", "dw_member_tables_restricted.pdf",
+    "Ir_tabsum.pdf"
+]
+
+def embed_text(text, model, embedding_type="RETRIEVAL_DOCUMENT", dimensionality=None):
+    """
+    Embed the given text using the Vertex AI TextEmbeddingModel.
+
+    Args:
+        text (str): The text string to embed.
+        model (TextEmbeddingModel): The embedding model.
+        embedding_type (str, optional): A descriptor used by Vertex AI. Defaults to "RETRIEVAL_DOCUMENT".
+        dimensionality (int, optional): If set, it requests embeddings with a specific dimension.
+        
+    Returns:
+        list[float]: The numeric embedding vector.
+    """
+    input_obj = TextEmbeddingInput(text, embedding_type)
+    kwargs = dict(output_dimensionality=dimensionality) if dimensionality else {}
+    embedding = model.get_embeddings([input_obj], **kwargs)[0]
+    return embedding.values
+
+def cosine_similarity(vec_a, vec_b):
+    """
+    Calculate the cosine similarity between two vectors.
+
+    Args:
+        vec_a (list[float]): Embedding vector A.
+        vec_b (list[float]): Embedding vector B.
+
+    Returns:
+        float: A similarity score between -1 and 1.
+    """
+    return np.dot(vec_a, vec_b) / (np.linalg.norm(vec_a) * np.linalg.norm(vec_b))
+
+def get_most_similar_chunks(query, embeddings_df, top_k=10):
+    """
+    Retrieve the most similar chunks from the DataFrame given a user query,
+    based on cosine similarity of embeddings.
+
+    Args:
+        query (str): The user query to retrieve similar chunks for.
+        embeddings_df (pd.DataFrame): DataFrame containing 'embeddings' and 'text' columns.
+        top_k (int, optional): Number of top similar chunks to retrieve. Defaults to 10.
+
+    Returns:
+        pd.DataFrame: The top similar document chunks sorted in descending order of similarity.
+    """
+    # Embed the query text
+    query_embedding = embed_text(query, embedding_model, dimensionality=EMBEDDING_DIMENSIONALITY)
+
+    # Make a copy to avoid modifying the original DataFrame
+    df_copy = embeddings_df.copy()
+
+    # Compute similarity for each row's embeddings
+    df_copy["similarity"] = df_copy["embeddings"].apply(
+        lambda x: cosine_similarity(x, query_embedding)
+    )
+
+    # Filter out very short text, if desired
+    df_copy["text_length"] = df_copy["text"].str.len()
+    filtered_df = df_copy[df_copy["text_length"] >= 50]
+
+    # Adjust top_k based on how many chunks are above a certain similarity threshold
+    num_high_similarity = len(filtered_df[filtered_df["similarity"] >= 0.7])
+    if num_high_similarity >= 120:
+        top_k = 50
+    elif num_high_similarity >= 90:
+        top_k = 40
+    elif num_high_similarity >= 70:
+        top_k = 30
+
+    # Return top K results in descending similarity
+    return filtered_df.sort_values(by="similarity", ascending=False).head(top_k)
+
+def get_answer(question, context_chunks):
+    """
+    Generate a final answer from the generative model using the supplied 
+    context chunks (retrieved from the similarity-based retrieval).
+
+    Args:
+        question (str): The user query.
+        context_chunks (pd.DataFrame): DataFrame containing the most relevant chunks.
+
+    Returns:
+        str: The model's generated answer, with links embedded (if any).
+    """
+    # Format context for the prompt
+    formatted_context = "\n".join(
+        f"**{row['filename']} (Page {row['page_num'] + 1}):** {row['text']}"
+        for _, row in context_chunks.iterrows()
+    )
+
+    # Construct the prompt to feed into the generative model
+    prompt = f"""
+    You are an AI assistant with domain expertise in database documentation. You have access to the following **context** (excerpts from relevant documentation). Use *only* this provided context to answer the user’s question. Follow these rules:
+    
+    1. **Context Only**: If the answer cannot be found explicitly or implicitly in the context, say "I don't know." Do not fabricate or invent extra details.
+    2. **Cite Sources**: Where relevant, cite sources using the format [filename.pdf (page X)] to reflect where you found the information in the context.
+    3. **Accuracy & Clarity**: Provide a concise, accurate, and coherent explanation. If you must speculate or hypothesize, clearly state that it is speculation.
+    4. **Professional Tone**: Communicate in a clear, professional, and helpful manner.
+    5. **No Irrelevant Info**: Avoid adding unnecessary text, disclaimers, or “thinking out loud.” Just deliver the answer clearly and directly.
+    
+    --------------------CONTEXT START--------------------
+    {formatted_context}
+    ---------------------CONTEXT END---------------------
+    
+    **User’s Question**: {question}
+    
+    Begin your answer below:
+    """
+
+    # Configuration for generation
+    generation_config = GenerationConfig(
+        temperature=0,
+        max_output_tokens=2048
+    )
+
+    # Generate the response
+    response = generative_model.generate_content(prompt, generation_config=generation_config)
+
+    # Insert clickable links where applicable
+    modified_text = create_links(filenames, response.text)
+    return modified_text
+
+@st.cache_data(show_spinner=False)
+def run_rag_pipeline(question, df):
+    """
+    Orchestrates the retrieval-augmented generation process:
+      1. Retrieves the most similar chunks to the user's query.
+      2. Passes those chunks plus the question to the generative model to produce an answer.
+
+    Args:
+        question (str): User’s question.
+        df (pd.DataFrame): DataFrame containing the embeddings and metadata.
+
+    Returns:
+        str: Answer generated by the model.
+    """
+    with st.spinner("Thinking..."):
+        similar_chunks_df = get_most_similar_chunks(question, df, top_k=20)
+        response = get_answer(question, similar_chunks_df)
+    return response
+
+# -- Display the Existing Chat Messages --
+for message in st.session_state["messages"]:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# -- Default Question Bubbles Section --
+question_bubble_container = st.empty()  # For layout consistency
+if st.session_state["questions_shown"]:
+    cols = question_bubble_container.columns(len(default_questions))
+    for i, question in enumerate(default_questions):
+        with cols[i]:
+            if st.button(question):
+                # Add the user question to the chat history
+                st.session_state["messages"].append({"role": "user", "content": question})
+                st.session_state["questions_shown"] = False
+
+                # Run the RAG pipeline and retrieve the model's answer
+                response = run_rag_pipeline(question, df)
+
+                # Add the model's response to the chat history
+                st.session_state["messages"].append({"role": "assistant", "content": response})
+                st.experimental_rerun()
+
+# -- Chat Input Section --
+user_input = st.chat_input("You:")
+if user_input:
+    # Add user message to history
+    st.session_state["messages"].append({"role": "user", "content": user_input})
+    st.session_state["questions_shown"] = False
+
+    # Display user message
+    with st.chat_message("user"):
+        st.markdown(user_input)
+
+    # Compute response
+    with st.spinner("Thinking..."):
+        similar_chunks_df = get_most_similar_chunks(user_input, df, top_k=20)
+        response = get_answer(user_input, similar_chunks_df)
+
+    # Add assistant response to history
+    st.session_state["messages"].append({"role": "assistant", "content": response})
+
+    # Display assistant response
+    with st.chat_message("assistant"):
+        st.markdown(response)
