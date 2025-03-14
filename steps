@@ -1,0 +1,25 @@
+Infrastructure & Environment Setup – Confirm hardware, software, and tool prerequisites across development, testing, staging, and production environments.
+Risk, Compliance & Security Assessment – Review regulatory requirements, data privacy, and conduct a risk assessment.
+Documentation & Requirements Review – Examine current Medicaid RAP model documentation and validate business requirements.
+Stakeholder Engagement – Meet with operations, data science, IT, and other relevant teams to gather advice and clarify expectations.
+Current Model Baseline Analysis – Analyze false positives/negatives and establish baseline performance metrics.
+Data Source Evaluation – Review and identify potential new data sources and the latest training datasets.
+Data Quality & Governance Check – Clean and preprocess data while ensuring compliance with data governance policies.
+Feature Engineering & Data Versioning – Perform feature engineering and maintain version control for data pipelines.
+Test Training Pipeline Creation – Build a test training pipeline that mirrors the production environment.
+Model Training Strategy Discussion – Conduct internal discussions to finalize the training plan and strategy.
+Model Experimentation & Selection – Experiment with different models and architectures to identify the best-performing option.
+Model Retraining – Retrain the Medicaid RAP model using the updated dataset.
+Model Evaluation – Evaluate the retrained model against predefined performance metrics.
+Hyperparameter Tuning – Fine-tune model hyperparameters based on evaluation outcomes.
+Model Explainability & Fairness Assessment – Assess model explainability and fairness to ensure ethical standards.
+Documentation & Version Control Update – Document all changes, assumptions, and performance results while updating version control for code and configurations.
+Internal Reporting – Prepare an internal report summarizing training outcomes and insights.
+Model Deployment – Deploy the retrained model using ML Ops practices and integrate it with the API.
+API Integration Testing – Perform unit and integration testing on API endpoints, including performance and scalability tests.
+Quality Assurance & Rollback Planning – Conduct quality checks and develop a rollback plan for potential issues.
+Impact Assessment Report – Create a report to estimate the potential impact based on the model’s performance.
+Monitoring Setup – Establish continuous monitoring systems and alert mechanisms to track model outputs.
+User Acceptance Testing (UAT) – Validate API usability and model outputs with key stakeholders and end-users.
+Ongoing Support & Iterative Improvement – Schedule periodic reviews, retraining cycles, and implement CI/CD processes for continuous updates.
+Final Documentation Update – Update all documentation and training materials to reflect the latest changes and findings.
